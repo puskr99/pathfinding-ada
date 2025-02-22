@@ -23,9 +23,10 @@ trail = []
 
 ## buttons
 ASTAR_BUTTON_RECT = pygame.Rect(10, 10, BUTTON_WIDTH, BUTTON_HEIGHT)
-BFS_BUTTON_RECT = pygame.Rect(1200, 1000, BUTTON_WIDTH, BUTTON_HEIGHT)
-DFS_BUTTON_RECT = pygame.Rect(120, 10, BUTTON_WIDTH, BUTTON_HEIGHT)
-RANDOM_DFS_BUTTON_RECT = pygame.Rect(240, 10, BUTTON_WIDTH, BUTTON_HEIGHT)
+BFS_BUTTON_RECT = pygame.Rect(120, 10, BUTTON_WIDTH, BUTTON_HEIGHT)
+DFS_BUTTON_RECT = pygame.Rect(240, 10, BUTTON_WIDTH, BUTTON_HEIGHT)
+RANDOM_DFS_BUTTON_RECT = pygame.Rect(360, 10, BUTTON_WIDTH, BUTTON_HEIGHT)
+BELL_BUTTON_RECT = pygame.Rect(480, 10, BUTTON_WIDTH, BUTTON_HEIGHT)
 
 
 FONT = pygame.font.Font(None, 36)
@@ -75,10 +76,10 @@ def draw_buttons():
     screen.blit(astar_text, (ASTAR_BUTTON_RECT.x + 30, ASTAR_BUTTON_RECT.y + 5))
     
     # BFS button
-    # bfs_color = (0, 255, 0) if current_algorithm == ALGORITHM_BFS else (150, 150, 150)
-    # pygame.draw.rect(screen, bfs_color, BFS_BUTTON_RECT)
-    # bfs_text = FONT.render("BFS", True, (0, 0, 0))
-    # screen.blit(bfs_text, (BFS_BUTTON_RECT.x + 20, BFS_BUTTON_RECT.y + 5))
+    bfs_color = (0, 255, 0) if current_algorithm == ALGORITHM_BFS else (150, 150, 150)
+    pygame.draw.rect(screen, bfs_color, BFS_BUTTON_RECT)
+    bfs_text = FONT.render("BFS", True, (0, 0, 0))
+    screen.blit(bfs_text, (BFS_BUTTON_RECT.x + 20, BFS_BUTTON_RECT.y + 5))
 
     # DFS
     dfs = (0, 255, 0) if current_algorithm == ALGORITHM_BRUTE else (150, 150, 150)
@@ -91,6 +92,12 @@ def draw_buttons():
     pygame.draw.rect(screen, r_dfs, RANDOM_DFS_BUTTON_RECT)
     r_dfs_text = FONT.render("R-DFS", True, (0, 0, 0))
     screen.blit(r_dfs_text, (RANDOM_DFS_BUTTON_RECT.x + 20, RANDOM_DFS_BUTTON_RECT.y + 5))
+
+    # Bellman Ford
+    b_ford = (0, 255, 0) if current_algorithm == ALGORITHM_BELLMAN_FORD else (150, 150, 150)
+    pygame.draw.rect(screen, b_ford, BELL_BUTTON_RECT)
+    b_ford_text = FONT.render("BELL", True, (0, 0, 0))
+    screen.blit(b_ford_text, (BELL_BUTTON_RECT.x + 20, BELL_BUTTON_RECT.y + 5))
 
 
 # Main game loop
@@ -111,6 +118,9 @@ while running:
                 path = []
             elif RANDOM_DFS_BUTTON_RECT.collidepoint(mouse_pos):
                 current_algorithm = ALGORITHM_RANDOM_BRUTE
+                path = []
+            elif BELL_BUTTON_RECT.collidepoint(mouse_pos):
+                current_algorithm = ALGORITHM_BELLMAN_FORD
                 path = []
             elif not moving:  # Only allow new movement if the ball isn't already moving
                 # Get the mouse position and calculate grid cell

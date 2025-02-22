@@ -24,6 +24,7 @@ ALGORITHM_ASTAR = "a_star"
 ALGORITHM_BFS = "bfs"
 ALGORITHM_BRUTE = "dfs"
 ALGORITHM_RANDOM_BRUTE = "r_dfs"
+ALGORITHM_BELLMAN_FORD = "bell_ford"
 current_algorithm = ALGORITHM_RANDOM_BRUTE  # Default to brute
 
 # Button properties
