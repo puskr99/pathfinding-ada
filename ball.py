@@ -19,7 +19,7 @@ def go_to_target(current_pos, target_pos, obstacle_list, algorithm):
                 path = brute_force(current_pos, target_pos, obstacle_list)
             case "r_dfs":
                 path = random_brute_force(current_pos, target_pos, obstacle_list)
-            case "bell":
+            case "bell_ford":
                 path = bellman_ford(current_pos, target_pos, obstacle_list)
                 
         if not path:

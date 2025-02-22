@@ -1,5 +1,5 @@
 # Screen dimensions
-WIDTH, HEIGHT = 800, 600
+WIDTH, HEIGHT = 1000, 600
 ROWS, COLS = 20, 20  # Number of rows and columns in the grid
 GRID_COLOR = (200, 200, 200)
 BALL_COLOR = (6, 35, 48)#062330
@@ -16,9 +16,9 @@ CELL_HEIGHT = HEIGHT // ROWS
 ball_x = 0
 ball_y = HEIGHT - CELL_HEIGHT
 
-NUM_OBSTACLES = 50  # Number of obstacles
+NUM_OBSTACLES = 40  # Number of obstacles
 
-ball_speed = 2 # Speed of the ball
+ball_speed = 1 # Speed of the ball
 
 ALGORITHM_ASTAR = "a_star"
 ALGORITHM_BFS = "bfs"
