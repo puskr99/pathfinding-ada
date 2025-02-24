@@ -135,7 +135,7 @@ def bfs(start, goal, obstacle_list):
     
     return []  # Return empty path if no path found
 
-
+# DFS (Brute Force)
 def brute_force(start, goal, obstacle_list):
     start = (start[0] // CELL_WIDTH, start[1] // CELL_HEIGHT)
     goal = (goal[0] // CELL_WIDTH, goal[1] // CELL_HEIGHT)
@@ -163,6 +163,8 @@ def brute_force(start, goal, obstacle_list):
         return [(x * CELL_WIDTH, y * CELL_HEIGHT) for x, y in path]
     return []
 
+
+# Random DFS
 def random_brute_force(start, goal, obstacle_list):
     start = (start[0] // CELL_WIDTH, start[1] // CELL_HEIGHT)
     goal = (goal[0] // CELL_WIDTH, goal[1] // CELL_HEIGHT)
@@ -198,6 +200,7 @@ def random_brute_force(start, goal, obstacle_list):
     return []
 
 
+# Bellman Ford Algorithm
 def bellman_ford(start, goal, obstacle_list):
     start = (start[0] // CELL_WIDTH, start[1] // CELL_HEIGHT)
     goal = (goal[0] // CELL_WIDTH, goal[1] // CELL_HEIGHT)

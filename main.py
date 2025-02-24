@@ -7,18 +7,11 @@ import sys
 
 pygame.init()
 
-
-# Create the Pygame screen
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Grid with Ball")
 
-# List to store marker positions
 markers = []
-
-# List to store all dotted lines
 lines = []
-
-# List to store the ball's trail
 trail = []
 
 ## buttons
@@ -48,20 +41,21 @@ def draw_ball(x, y):
     pygame.draw.circle(screen, BALL_COLOR, (x + CELL_WIDTH // 2, y + CELL_HEIGHT // 2), min(CELL_WIDTH, CELL_HEIGHT) // 3)
 
 
-# Function to draw a dotted line
+# draw a dotted line
 def draw_dotted_line(screen, start_pos, end_pos, color, dot_spacing=100):
     x1, y1 = start_pos
     x2, y2 = end_pos
-    # Calculate the distance and direction vector
+    # distance and direction vector
     dx = x2 - x1
     dy = y2 - y1
-    distance = max(abs(dx), abs(dy))  # Use the larger dimension for spacing
+    distance = max(abs(dx), abs(dy))
     # Normalize the direction vector
     if distance != 0:
         step_x = dx / distance
         step_y = dy / distance
     else:
         step_x, step_y = 0, 0
+
     # Draw dots along the line
     for i in range(0, int(distance), dot_spacing):
         dot_x = int(x1 + step_x * i)
@@ -109,10 +103,10 @@ while running:
             mouse_pos = event.pos
             if ASTAR_BUTTON_RECT.collidepoint(mouse_pos):
                 current_algorithm = ALGORITHM_ASTAR
-                path = []  # Reset path when changing algorithm
+                path = []
             elif BFS_BUTTON_RECT.collidepoint(mouse_pos):
                 current_algorithm = ALGORITHM_BFS
-                path = []  # Reset path when changing algorithm
+                path = []  
             elif DFS_BUTTON_RECT.collidepoint(mouse_pos):
                 current_algorithm = ALGORITHM_BRUTE
                 path = []
@@ -122,20 +116,19 @@ while running:
             elif BELL_BUTTON_RECT.collidepoint(mouse_pos):
                 current_algorithm = ALGORITHM_BELLMAN_FORD
                 path = []
-            elif not moving:  # Only allow new movement if the ball isn't already moving
-                # Get the mouse position and calculate grid cell
+            elif not moving:
                 mouse_x, mouse_y = event.pos
                 col = mouse_x // CELL_WIDTH
                 row = mouse_y // CELL_HEIGHT
                 markers.clear()
-                markers.append((col * CELL_WIDTH, row * CELL_HEIGHT))  # Store marker position in pixels
-                target_pos = markers[-1]  # Set the target position
-                moving = True  # Start moving the ball
-                trail.clear() # Clear the trail on new movement.
+                markers.append((col * CELL_WIDTH, row * CELL_HEIGHT))
+                target_pos = markers[-1]
+                moving = True
+                trail.clear()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_e:  # Press 'E' to erase all lines
-                lines.clear()  # Clear all stored lines
-                trail.clear() # Clear the trail as well.
+                lines.clear()
+                trail.clear()
 
     # Move the ball if there's a target position
     if moving:
@@ -152,32 +145,30 @@ while running:
                           (target_pos[0] + CELL_WIDTH // 2, target_pos[1] + CELL_HEIGHT // 2)))
             moving = False  # Stop moving when the ball reaches the target
 
-    # Clear the screen
+    # CLS
     screen.fill((255, 255, 255))
 
-    # Draw the grid
+    # Grid
     for row in range(ROWS):
         for col in range(COLS):
             rect = pygame.Rect(col * CELL_WIDTH, row * CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT)
             pygame.draw.rect(screen, GRID_COLOR, rect, 1)
 
-    # Draw the markers
+    # Markers
     for marker_x, marker_y in markers:
         marker_rect = pygame.Rect(marker_x, marker_y, CELL_WIDTH, CELL_HEIGHT)
         pygame.draw.rect(screen, MARKER_COLOR, marker_rect)
 
-    # Draw the ball
+    # Balls, Obstacles & Buttons
     draw_ball(ball_x, ball_y)
     draw_obstacles(obstacle_list= obstacles)
     draw_buttons()
 
-    # Draw the ball's trail
+    # Ball's trail
     for i in range(1, len(trail)):
         draw_dotted_line(screen, trail[i-1], trail[i], TRAIL_COLOR)
 
-    # Update the display
     pygame.display.flip()
 
-# Quit Pygame
 pygame.quit()
 sys.exit()
