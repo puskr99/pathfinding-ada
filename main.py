@@ -93,7 +93,6 @@ def draw_buttons():
     b_ford_text = FONT.render("BELL", True, (0, 0, 0))
     screen.blit(b_ford_text, (BELL_BUTTON_RECT.x + 20, BELL_BUTTON_RECT.y + 5))
 
-
 # Main game loop
 while running:
     for event in pygame.event.get():
@@ -101,43 +100,62 @@ while running:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mouse_pos = event.pos
-            if ASTAR_BUTTON_RECT.collidepoint(mouse_pos):
-                current_algorithm = ALGORITHM_ASTAR
-                path = []
-            elif BFS_BUTTON_RECT.collidepoint(mouse_pos):
-                current_algorithm = ALGORITHM_BFS
-                path = []  
-            elif DFS_BUTTON_RECT.collidepoint(mouse_pos):
-                current_algorithm = ALGORITHM_BRUTE
-                path = []
-            elif RANDOM_DFS_BUTTON_RECT.collidepoint(mouse_pos):
-                current_algorithm = ALGORITHM_RANDOM_BRUTE
-                path = []
-            elif BELL_BUTTON_RECT.collidepoint(mouse_pos):
-                current_algorithm = ALGORITHM_BELLMAN_FORD
-                path = []
-            elif not moving:
-                mouse_x, mouse_y = event.pos
-                col = mouse_x // CELL_WIDTH
-                row = mouse_y // CELL_HEIGHT
-                markers.clear()
-                markers.append((col * CELL_WIDTH, row * CELL_HEIGHT))
-                target_pos = markers[-1]
-                moving = True
-                trail.clear()
+            if event.button == 1:  # Left-click for algorithm/target selection
+                col = mouse_pos[0] // CELL_WIDTH
+                row = mouse_pos[1] // CELL_HEIGHT
+                obstacle_pos = (col * CELL_WIDTH, row * CELL_HEIGHT)
+                if obstacle_pos == target_pos:
+                    continue
+                
+                if ASTAR_BUTTON_RECT.collidepoint(mouse_pos):
+                    current_algorithm = ALGORITHM_ASTAR
+                    path = []
+                elif BFS_BUTTON_RECT.collidepoint(mouse_pos):
+                    current_algorithm = ALGORITHM_BFS
+                    path = []
+                elif DFS_BUTTON_RECT.collidepoint(mouse_pos):
+                    current_algorithm = ALGORITHM_BRUTE
+                    path = []
+                elif RANDOM_DFS_BUTTON_RECT.collidepoint(mouse_pos):
+                    current_algorithm = ALGORITHM_RANDOM_BRUTE
+                    path = []
+                elif BELL_BUTTON_RECT.collidepoint(mouse_pos):
+                    current_algorithm = ALGORITHM_BELLMAN_FORD
+                    path = []
+                elif not moving:
+                    mouse_x, mouse_y = mouse_pos
+                    col = mouse_x // CELL_WIDTH
+                    row = mouse_y // CELL_HEIGHT
+                    markers.clear()
+                    markers.append((col * CELL_WIDTH, row * CELL_HEIGHT))
+                    target_pos = markers[-1]
+                    moving = True
+                    trail.clear()
+
+            elif event.button == 3:  # Right-click to toggle obstacles
+                col = mouse_pos[0] // CELL_WIDTH
+                row = mouse_pos[1] // CELL_HEIGHT
+                obstacle_pos = (col * CELL_WIDTH, row * CELL_HEIGHT)
+                if obstacle_pos == target_pos:
+                    continue
+                if obstacle_pos in obstacles:
+                    obstacles.remove(obstacle_pos)
+                elif obstacle_pos != (ball_x, ball_y):
+                    obstacles.append(obstacle_pos)
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_e:  # Press 'E' to erase all lines
+            if event.key == pygame.K_e:
                 lines.clear()
                 trail.clear()
 
     # Move the ball if there's a target position
     if moving:
         old_x, old_y = ball_x, ball_y
-        ball_x, ball_y = go_to_target((ball_x, ball_y), target_pos, obstacle_list=obstacles, algorithm=current_algorithm)
+        ball_x, ball_y, movable = go_to_target((ball_x, ball_y), target_pos, obstacle_list=obstacles, algorithm=current_algorithm)
+        if not movable:
+            moving = False
+            
         if (ball_x, ball_y) != (old_x, old_y):
             trail.append((ball_x + CELL_WIDTH // 2, ball_y + CELL_HEIGHT // 2))
-        # else:
-        #     target_pos = ball_x, ball_y
 
         if (ball_x, ball_y) == target_pos:
             # When the ball reaches the target, store the line

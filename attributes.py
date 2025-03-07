@@ -16,7 +16,7 @@ CELL_HEIGHT = HEIGHT // ROWS
 ball_x = 0
 ball_y = HEIGHT - CELL_HEIGHT
 
-NUM_OBSTACLES = 40  # Number of obstacles
+NUM_OBSTACLES = 20  # Number of obstacles
 
 ball_speed = 1 # Speed of the ball
 

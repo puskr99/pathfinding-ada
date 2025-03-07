@@ -5,11 +5,19 @@ from collections import deque
 from attributes import CELL_HEIGHT, CELL_WIDTH, ROWS, COLS, ball_speed
 
 path = []
+total_obstacles = 0  # Initialize globally
 
 def go_to_target(current_pos, target_pos, obstacle_list, algorithm):
-    global path
+    global path, total_obstacles
+
+    cx, cy = current_pos
     
-    if not path:  # If no path exists, calculate one
+    # Pop waypoint if reached
+    if path and (cx, cy) == path[0]:
+        path.pop(0)
+    
+    # Recalculate if no path or next step is blocked
+    if not path or (path and path[0] in obstacle_list):
         match algorithm:
             case "a_star":
                 path = a_star(current_pos, target_pos, obstacle_list)
@@ -21,21 +29,18 @@ def go_to_target(current_pos, target_pos, obstacle_list, algorithm):
                 path = random_brute_force(current_pos, target_pos, obstacle_list)
             case "bell_ford":
                 path = bellman_ford(current_pos, target_pos, obstacle_list)
-                
         if not path:
-            return current_pos  # No path found, stay put
+            # print("Hi")
+            # return -1, -1
+            return cx, cy, False  # No path, stay put
     
-    cx, cy = current_pos
+    # Update total_obstacles after recalculation (not before)
+    if len(obstacle_list) > total_obstacles:
+        total_obstacles = len(obstacle_list)
     
-    if path:  # If there's a path to follow
+    if path:
         next_pos = path[0]
-        if (cx, cy) == next_pos:
-            path.pop(0)  # Reached this point, move to next
-            if not path:
-                return cx, cy  # Reached the end
-            next_pos = path[0]
-        
-        # Move towards next position in path
+        # Move towards next position
         if cx < next_pos[0]:
             cx += ball_speed
         elif cx > next_pos[0]:
@@ -48,10 +53,10 @@ def go_to_target(current_pos, target_pos, obstacle_list, algorithm):
         # Snap to position if close enough
         if abs(cx - next_pos[0]) < ball_speed:
             cx = next_pos[0]
-        if abs(cy - next_pos[1]) < ball_speed:
+        if abs(cx - next_pos[1]) < ball_speed:
             cy = next_pos[1]
     
-    return cx, cy
+    return cx, cy, True
 
 
 
