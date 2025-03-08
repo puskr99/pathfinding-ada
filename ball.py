@@ -22,7 +22,7 @@ def go_to_target(current_pos, target_pos, obstacle_list, algorithm):
             case "a_star":
                 path = a_star(current_pos, target_pos, obstacle_list)
             case "bfs":
-                path = bellman_ford(current_pos, target_pos, obstacle_list)
+                path = bfs(current_pos, target_pos, obstacle_list)
             case "dfs":
                 path = brute_force(current_pos, target_pos, obstacle_list)
             case "r_dfs":
