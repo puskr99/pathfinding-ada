@@ -18,7 +18,7 @@ ball_y = HEIGHT - CELL_HEIGHT
 
 NUM_OBSTACLES = 20  # Number of obstacles
 
-ball_speed = 1 # Speed of the ball
+ball_speed = 3 # Speed of the ball
 
 ALGORITHM_ASTAR = "a_star"
 ALGORITHM_BFS = "bfs"
@@ -29,3 +29,6 @@ current_algorithm = ALGORITHM_RANDOM_BRUTE  # Default to brute
 
 # Button properties
 BUTTON_WIDTH, BUTTON_HEIGHT = 100, 40
+
+IS_SIMULATION = True
+MAX_SIMULATION_COUNT = 100
