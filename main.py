@@ -133,7 +133,9 @@ def randomize_params():
     random_height = random.randint(200, 600)
     random_rows = random.randint(10, 50)
     random_cols = random.randint(10, 50)
-    NUM_OBSTACLES = random.randint(20, 50)
+    
+    total_nodes = random_cols * random_rows
+    # NUM_OBSTACLES = random.randint(int(0.2 * total_nodes), int(0.6 * total_nodes) )
     
     # Update global variables
     WIDTH, HEIGHT = random_width, random_height
