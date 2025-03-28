@@ -326,12 +326,12 @@ def random_brute_force(start, goal, obstacle_list):
     visited = set()
     directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # down, right, up, left
     
-    def dfs_random(current, path_so_far, max_attempts=1000):
+    def dfs_random(current, path_so_far, max_attempts=10000):
         if current == goal:
             return path_so_far
         
-        # if len(path_so_far) > max_attempts:  # Limit to prevent infinite recursion
-        #     return None
+        if len(path_so_far) > max_attempts:  # Limit to prevent infinite recursion
+            return None
         
         visited.add(current)
         # Randomly shuffle directions to explore
