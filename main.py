@@ -330,8 +330,8 @@ def random_brute_force(start, goal, obstacle_list):
         if current == goal:
             return path_so_far
         
-        if len(path_so_far) > max_attempts:  # Limit to prevent infinite recursion
-            return None
+        # if len(path_so_far) > max_attempts:  # Limit to prevent infinite recursion
+        #     return None
         
         visited.add(current)
         # Randomly shuffle directions to explore
@@ -435,13 +435,14 @@ while running:
 
         if (ball_x, ball_y) == target_pos or not movable:
             moving = False
-            simulation_count += 1
             end_time = time.time()
             sim_time = end_time - start_time
             path_len = len(trail)
-            simulation_data[current_algorithm]["times"].append(sim_time)
-            simulation_data[current_algorithm]["path_lengths"].append(path_len)
-            simulation_data[current_algorithm]["nodes"].append(ROWS * COLS)
+            if path_len > 0:
+                simulation_count += 1
+                simulation_data[current_algorithm]["times"].append(sim_time)
+                simulation_data[current_algorithm]["path_lengths"].append(path_len)
+                simulation_data[current_algorithm]["nodes"].append(ROWS * COLS)
             print(f"Iteration {simulation_count}: {current_algorithm}, Time: {sim_time:.3f}s, Path Length: {path_len}")
             randomize_params()
 
