@@ -97,7 +97,7 @@ def plot_summary_from_csv(csv_path):
             nodes_smooth, times_smooth = smooth_data(x, y)
             plt.plot(nodes_smooth, times_smooth, label=algo, linewidth=2)
 
-        plt.title(f"Smoothed Computation Time vs. Nodes (Obstacles {op}%)")
+        plt.title(f"Computation Time vs. Nodes (Obstacles {op * 100}%)")
         plt.xlabel("Number of Nodes (rows * cols)")
         plt.ylabel("Time (s)")
         plt.yscale('log')

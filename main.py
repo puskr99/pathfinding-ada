@@ -137,6 +137,7 @@ def randomize_params():
     
     total_nodes = random_cols * random_rows
     obstacle_percentages = [0.05, 0.10, 0.25, 0.50]
+    random.shuffle(obstacle_percentages)
     selected_percentage = random.choice(obstacle_percentages)
 
     # Calculate the number of obstacles based on the selected percentage
