@@ -295,26 +295,24 @@ def brute_force(start, goal, obstacle_list):
     goal = (goal[0] // CELL_WIDTH, goal[1] // CELL_HEIGHT)
     obstacle_grid = set((x // CELL_WIDTH, y // CELL_HEIGHT) for x, y in obstacle_list)
     visited = set()
-    
-    def dfs(current, path_so_far):
+    stack = [(start, [start])]
+
+    while stack:
+        current, path = stack.pop()
         if current == goal:
-            return path_so_far
-        
+            return [(x * CELL_WIDTH, y * CELL_HEIGHT) for x, y in path]
+        if current in visited:
+            continue
         visited.add(current)
-        for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:  # Explore: down, right, up, left
+
+        for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
             next_pos = (current[0] + dx, current[1] + dy)
             if (0 <= next_pos[0] < COLS and 
                 0 <= next_pos[1] < ROWS and 
                 next_pos not in obstacle_grid and 
                 next_pos not in visited):
-                result = dfs(next_pos, path_so_far + [next_pos])
-                if result:
-                    return result
-        return None
-    
-    path = dfs(start, [start])
-    if path:
-        return [(x * CELL_WIDTH, y * CELL_HEIGHT) for x, y in path]
+                stack.append((next_pos, path + [next_pos]))
+
     return []
 
 
