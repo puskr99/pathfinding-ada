@@ -37,7 +37,6 @@ def plot_simulation_results(simulation_data, output_csv_path="simulation_summary
     # Proceed with plotting summary from new data
     # plot_summary_from_csv(output_csv_path)
 
-
 def plot_summary_from_csv(csv_path):
     import pandas as pd
 
@@ -51,7 +50,10 @@ def plot_summary_from_csv(csv_path):
         print("CSV file is empty.")
         return
 
-    # Group by algorithm and calculate stats
+    # 🧹 Remove exact duplicate rows
+    df = df.drop_duplicates()
+
+    # 📊 Group by algorithm and calculate stats
     grouped = df.groupby("algorithm")
     avg_times = grouped["time"].mean()
     std_times = grouped["time"].std()
@@ -60,7 +62,7 @@ def plot_summary_from_csv(csv_path):
 
     valid_algorithms = avg_times.index.tolist()
 
-    # Subplot setup
+    # 📈 Subplot setup
     plt.figure(figsize=(15, 5))
 
     # Subplot 1: Avg Computation Time
@@ -100,11 +102,47 @@ def plot_summary_from_csv(csv_path):
     plt.show()
 
 
-def smooth_data(x, y, window_size=5):
-    if len(x) < window_size:
-        return x, y  # Not enough data to smooth
-    smoothed_x = np.convolve(x, np.ones(window_size)/window_size, mode='valid')
-    smoothed_y = np.convolve(y, np.ones(window_size)/window_size, mode='valid')
+from statsmodels.nonparametric.smoothers_lowess import lowess
+import numpy as np
+
+def smooth_data(x, y, frac=0.2):
+    """
+    Smooths the data using LOWESS (locally weighted regression).
+    
+    Parameters:
+        x: 1D array-like, independent variable (e.g., nodes)
+        y: 1D array-like, dependent variable (e.g., time)
+        frac: float, between 0 and 1 — amount of smoothing (higher = smoother)
+    
+    Returns:
+        Tuple of (smoothed_x, smoothed_y)
+    """
+    x = np.array(x)
+    y = np.array(y)
+
+    if len(x) < 3:
+        return x, y  # not enough data to smooth
+
+    # Sort by x to ensure proper line
+    sorted_indices = np.argsort(x)
+    x_sorted = x[sorted_indices]
+    y_sorted = y[sorted_indices]
+
+    # Apply LOWESS
+    smoothed = lowess(y_sorted, x_sorted, frac=frac, return_sorted=True)
+
+    smoothed_x = smoothed[:, 0]
+    smoothed_y = smoothed[:, 1]
+
     return smoothed_x, smoothed_y
+
+
+# def smooth_data(x, y, window_size=5):
+#     if len(x) < window_size:
+#         return x, y  # Not enough data to smooth
+#     smoothed_x = np.convolve(x, np.ones(window_size)/window_size, mode='valid')
+#     smoothed_y = np.convolve(y, np.ones(window_size)/window_size, mode='valid')
+#     return smoothed_x, smoothed_y
+
 
 # plot_summary_from_csv("simulation_summary.csv")
