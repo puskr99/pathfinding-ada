@@ -136,7 +136,7 @@ def randomize_params():
     random_cols = random.randint(10, 50)
     
     total_nodes = random_cols * random_rows
-    obstacle_percentages = [0.05, 0.10, 0.25, 0.50]
+    obstacle_percentages = [0.05, 0.10, 0.25, 0.40]
     random.shuffle(obstacle_percentages)
     selected_percentage = random.choice(obstacle_percentages)
 
@@ -184,8 +184,8 @@ def go_to_target(current_pos, target_pos, obstacle_list, algorithm):
                 path = bfs(current_pos, target_pos, obstacle_list)
             case "dfs":
                 path = brute_force(current_pos, target_pos, obstacle_list)
-            case "r_dfs":
-                path = random_brute_force(current_pos, target_pos, obstacle_list)
+            # case "r_dfs":
+            #     path = random_brute_force(current_pos, target_pos, obstacle_list)
             case "bell_ford":
                 path = bellman_ford(current_pos, target_pos, obstacle_list)
         
@@ -323,39 +323,39 @@ def brute_force(start, goal, obstacle_list):
 
 
 # Random DFS
-def random_brute_force(start, goal, obstacle_list):
-    start = (start[0] // CELL_WIDTH, start[1] // CELL_HEIGHT)
-    goal = (goal[0] // CELL_WIDTH, goal[1] // CELL_HEIGHT)
-    obstacle_grid = set((x // CELL_WIDTH, y // CELL_HEIGHT) for x, y in obstacle_list)
-    visited = set()
-    directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # down, right, up, left
+# def random_brute_force(start, goal, obstacle_list):
+#     start = (start[0] // CELL_WIDTH, start[1] // CELL_HEIGHT)
+#     goal = (goal[0] // CELL_WIDTH, goal[1] // CELL_HEIGHT)
+#     obstacle_grid = set((x // CELL_WIDTH, y // CELL_HEIGHT) for x, y in obstacle_list)
+#     visited = set()
+#     directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # down, right, up, left
     
-    def dfs_random(current, path_so_far, max_attempts=10000):
-        if current == goal:
-            return path_so_far
+#     def dfs_random(current, path_so_far, max_attempts=10000):
+#         if current == goal:
+#             return path_so_far
         
-        if len(path_so_far) > max_attempts:  # Limit to prevent infinite recursion
-            return None
+#         if len(path_so_far) > max_attempts:  # Limit to prevent infinite recursion
+#             return None
         
-        visited.add(current)
-        # Randomly shuffle directions to explore
-        random.shuffle(directions)
+#         visited.add(current)
+#         # Randomly shuffle directions to explore
+#         random.shuffle(directions)
         
-        for dx, dy in directions:
-            next_pos = (current[0] + dx, current[1] + dy)
-            if (0 <= next_pos[0] < COLS and 
-                0 <= next_pos[1] < ROWS and 
-                next_pos not in obstacle_grid and 
-                next_pos not in visited):
-                result = dfs_random(next_pos, path_so_far + [next_pos])
-                if result:
-                    return result
-        return None
+#         for dx, dy in directions:
+#             next_pos = (current[0] + dx, current[1] + dy)
+#             if (0 <= next_pos[0] < COLS and 
+#                 0 <= next_pos[1] < ROWS and 
+#                 next_pos not in obstacle_grid and 
+#                 next_pos not in visited):
+#                 result = dfs_random(next_pos, path_so_far + [next_pos])
+#                 if result:
+#                     return result
+#         return None
     
-    path = dfs_random(start, [start])
-    if path:
-        return [(x * CELL_WIDTH, y * CELL_HEIGHT) for x, y in path]
-    return []
+#     path = dfs_random(start, [start])
+#     if path:
+#         return [(x * CELL_WIDTH, y * CELL_HEIGHT) for x, y in path]
+#     return []
 
 
 # Bellman Ford Algorithm

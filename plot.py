@@ -48,10 +48,10 @@ def plot_summary_from_csv(csv_path):
         print("CSV file is empty.")
         return
 
-    # 🧹 Remove exact duplicate rows
+    # Remove exact duplicate rows
     df = df.drop_duplicates()
 
-    # 📊 Unique obstacle percentages
+    # Unique obstacle percentages
     obstacle_percentages = df['obstacles_percent'].unique()
 
     # Loop through each obstacle percentage and plot separately
@@ -68,7 +68,7 @@ def plot_summary_from_csv(csv_path):
 
         valid_algorithms = avg_times.index.tolist()
 
-        # 📈 Subplot setup
+        # Subplot setup
         plt.figure(figsize=(15, 5))
 
         # Subplot 1: Avg Computation Time
@@ -141,4 +141,4 @@ def smooth_data(x, y, frac=0.2):
     return smoothed_x, smoothed_y
 
 # Example usage
-plot_summary_from_csv("simulation_summary.csv")
+# plot_summary_from_csv("simulation_summary.csv")
