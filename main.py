@@ -446,8 +446,11 @@ while running:
 
 
         if simulation_count >= MAX_SIMULATION_COUNT:
+            # save_simulation_data(new_data=simulation_count)
             plot_simulation_results(simulation_data=simulation_data)
             IS_SIMULATION = False  # Exit simulation mode
+            pygame.quit()
+            sys.exit()
         
 
     else:
