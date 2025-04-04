@@ -107,4 +107,4 @@ def smooth_data(x, y, window_size=5):
     smoothed_y = np.convolve(y, np.ones(window_size)/window_size, mode='valid')
     return smoothed_x, smoothed_y
 
-plot_summary_from_csv("simulation_summary.csv")
+# plot_summary_from_csv("simulation_summary.csv")
