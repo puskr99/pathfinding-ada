@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 import os
+import pandas as pd
+from statsmodels.nonparametric.smoothers_lowess import lowess
 
 def plot_simulation_results(simulation_data, output_csv_path="simulation_summary.csv"):
     # Filter algorithms with data to avoid ZeroDivisionError
@@ -21,25 +23,21 @@ def plot_simulation_results(simulation_data, output_csv_path="simulation_summary
 
         # Write header if file does not exist
         if not csv_exists:
-            writer.writerow(["algorithm", "time", "path_length", "nodes"])
+            writer.writerow(["algorithm", "time", "path_length", "nodes", "obstacles_percent"])
 
         # Write data rows
         for algo in valid_algorithms:
             times = simulation_data[algo]["times"]
             lengths = simulation_data[algo]["path_lengths"]
             nodes = simulation_data[algo]["nodes"]
+            obstacles_percent = simulation_data[algo]["obstacles_percent"]
 
-            for t, l, n in zip(times, lengths, nodes):
-                writer.writerow([algo, t, l, n])
+            for t, l, n, op in zip(times, lengths, nodes, obstacles_percent):
+                writer.writerow([algo, t, l, n, op])
 
     print(f"Simulation data saved to {os.path.abspath(output_csv_path)}")
 
-    # Proceed with plotting summary from new data
-    # plot_summary_from_csv(output_csv_path)
-
 def plot_summary_from_csv(csv_path):
-    import pandas as pd
-
     if not os.path.exists(csv_path):
         print(f"No data found at {csv_path}")
         return
@@ -53,57 +51,63 @@ def plot_summary_from_csv(csv_path):
     # 🧹 Remove exact duplicate rows
     df = df.drop_duplicates()
 
-    # 📊 Group by algorithm and calculate stats
-    grouped = df.groupby("algorithm")
-    avg_times = grouped["time"].mean()
-    std_times = grouped["time"].std()
-    avg_lengths = grouped["path_length"].mean()
-    std_lengths = grouped["path_length"].std()
+    # 📊 Unique obstacle percentages
+    obstacle_percentages = df['obstacles_percent'].unique()
 
-    valid_algorithms = avg_times.index.tolist()
+    # Loop through each obstacle percentage and plot separately
+    for op in obstacle_percentages:
+        # Filter data for the current obstacle percentage
+        op_df = df[df['obstacles_percent'] == op]
 
-    # 📈 Subplot setup
-    plt.figure(figsize=(15, 5))
+        # Group by algorithm and calculate stats
+        grouped = op_df.groupby("algorithm")
+        avg_times = grouped["time"].mean()
+        std_times = grouped["time"].std()
+        avg_lengths = grouped["path_length"].mean()
+        std_lengths = grouped["path_length"].std()
 
-    # Subplot 1: Avg Computation Time
-    plt.subplot(1, 3, 1)
-    plt.bar(valid_algorithms, avg_times, yerr=std_times, color='skyblue', capsize=5)
-    plt.title("Average Computation Time")
-    plt.ylabel("Time (s)")
-    plt.xticks(rotation=45)
+        valid_algorithms = avg_times.index.tolist()
 
-    # Subplot 2: Avg Path Length
-    plt.subplot(1, 3, 2)
-    plt.bar(valid_algorithms, avg_lengths, yerr=std_lengths, color='lightgreen', capsize=5)
-    plt.title("Average Path Length")
-    plt.ylabel("Steps")
-    plt.xticks(rotation=45)
+        # 📈 Subplot setup
+        plt.figure(figsize=(15, 5))
 
-    # Subplot 3: Smoothed Time vs Nodes (log scale)
-    plt.subplot(1, 3, 3)
-    for algo in valid_algorithms:
-        sub_df = df[df["algorithm"] == algo]
-        sub_df = sub_df.sort_values("nodes")
-        x = sub_df["nodes"].values
-        y = sub_df["time"].values
+        # Subplot 1: Avg Computation Time
+        plt.subplot(1, 3, 1)
+        plt.bar(valid_algorithms, avg_times, yerr=std_times, color='skyblue', capsize=5)
+        plt.title(f"Avg Computation Time (Obstacles {op}%)")
+        plt.ylabel("Time (s)")
+        plt.xticks(rotation=45)
 
-        # Smooth data
-        nodes_smooth, times_smooth = smooth_data(x, y)
-        plt.plot(nodes_smooth, times_smooth, label=algo, linewidth=2)
+        # Subplot 2: Avg Path Length
+        plt.subplot(1, 3, 2)
+        plt.bar(valid_algorithms, avg_lengths, yerr=std_lengths, color='lightgreen', capsize=5)
+        plt.title(f"Avg Path Length (Obstacles {op}%)")
+        plt.ylabel("Steps")
+        plt.xticks(rotation=45)
 
-    plt.title("Smoothed Computation Time vs. Nodes (Log Scale)")
-    plt.xlabel("Number of Nodes (rows * cols)")
-    plt.ylabel("Time (s)")
-    plt.yscale('log')
-    plt.grid(True, which="both", ls="--")
-    plt.legend()
+        # Subplot 3: Smoothed Time vs Nodes (log scale)
+        plt.subplot(1, 3, 3)
+        for algo in valid_algorithms:
+            sub_df = op_df[op_df["algorithm"] == algo]
+            sub_df = sub_df.sort_values("nodes")
+            x = sub_df["nodes"].values
+            y = sub_df["time"].values
 
-    plt.tight_layout()
-    plt.show()
+            # Smooth data
+            nodes_smooth, times_smooth = smooth_data(x, y)
+            plt.plot(nodes_smooth, times_smooth, label=algo, linewidth=2)
 
+        plt.title(f"Smoothed Computation Time vs. Nodes (Obstacles {op}%)")
+        plt.xlabel("Number of Nodes (rows * cols)")
+        plt.ylabel("Time (s)")
+        plt.yscale('log')
+        plt.grid(True, which="both", ls="--")
+        plt.legend()
 
-from statsmodels.nonparametric.smoothers_lowess import lowess
-import numpy as np
+        # Adjust layout for clarity
+        plt.tight_layout()
+        # Show plot for this obstacle percentage
+        plt.show()
 
 def smooth_data(x, y, frac=0.2):
     """
@@ -136,13 +140,5 @@ def smooth_data(x, y, frac=0.2):
 
     return smoothed_x, smoothed_y
 
-
-# def smooth_data(x, y, window_size=5):
-#     if len(x) < window_size:
-#         return x, y  # Not enough data to smooth
-#     smoothed_x = np.convolve(x, np.ones(window_size)/window_size, mode='valid')
-#     smoothed_y = np.convolve(y, np.ones(window_size)/window_size, mode='valid')
-#     return smoothed_x, smoothed_y
-
-
-# plot_summary_from_csv("simulation_summary.csv")
+# Example usage
+plot_summary_from_csv("simulation_summary.csv")

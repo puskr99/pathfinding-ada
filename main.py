@@ -35,11 +35,11 @@ FONT = pygame.font.Font(None, 36)
 # Simulation variables
 simulation_count = 0
 simulation_data = {
-    "a_star": {"times": [], "path_lengths": [], "nodes": []},
-    "bfs": {"times": [], "path_lengths": [], "nodes": []},
-    "dfs": {"times": [], "path_lengths": [], "nodes": []},
-    "r_dfs": {"times": [], "path_lengths": [], "nodes": []},
-    "bell_ford": {"times": [], "path_lengths": [], "nodes": []}
+    "a_star": {"times": [], "path_lengths": [], "nodes": [], "obstacles_percent": []},
+    "bfs": {"times": [], "path_lengths": [], "nodes": [], "obstacles_percent": []},
+    "dfs": {"times": [], "path_lengths": [], "nodes": [], "obstacles_percent": []},
+    "r_dfs": {"times": [], "path_lengths": [], "nodes": [], "obstacles_percent": []},
+    "bell_ford": {"times": [], "path_lengths": [], "nodes": [], "obstacles_percent": []}
 }
 
 ALGORITHMS = [ALGORITHM_ASTAR, ALGORITHM_BFS, ALGORITHM_BRUTE, ALGORITHM_BELLMAN_FORD]
@@ -124,9 +124,10 @@ def draw_buttons():
     b_ford_text = FONT.render("BELL", True, (0, 0, 0))
     screen.blit(b_ford_text, (BELL_BUTTON_RECT.x + 20, BELL_BUTTON_RECT.y + 5))
 
+selected_percentage = 0.05
 # Function to randomize simulation parameters
 def randomize_params():
-    global WIDTH, HEIGHT, ROWS, COLS, CELL_WIDTH, CELL_HEIGHT, ball_x, ball_y, NUM_OBSTACLES
+    global WIDTH, HEIGHT, ROWS, COLS, CELL_WIDTH, CELL_HEIGHT, ball_x, ball_y, NUM_OBSTACLES, selected_percentage
     
     # Randomize screen size and grid parameters
     random_width = random.randint(500, 1000)
@@ -135,7 +136,11 @@ def randomize_params():
     random_cols = random.randint(10, 50)
     
     total_nodes = random_cols * random_rows
-    # NUM_OBSTACLES = random.randint(int(0.2 * total_nodes), int(0.6 * total_nodes) )
+    obstacle_percentages = [0.05, 0.10, 0.25, 0.50]
+    selected_percentage = random.choice(obstacle_percentages)
+
+    # Calculate the number of obstacles based on the selected percentage
+    NUM_OBSTACLES = int(selected_percentage * total_nodes)
     
     # Update global variables
     WIDTH, HEIGHT = random_width, random_height
@@ -441,7 +446,8 @@ while running:
                 simulation_data[current_algorithm]["times"].append(sim_time)
                 simulation_data[current_algorithm]["path_lengths"].append(path_len)
                 simulation_data[current_algorithm]["nodes"].append(ROWS * COLS)
-            print(f"Iteration {simulation_count}: {current_algorithm}, Time: {sim_time:.3f}s, Path Length: {path_len}")
+                simulation_data[current_algorithm]["obstacles_percent"].append(selected_percentage)
+            print(f"Iteration {simulation_count}: {current_algorithm}, Time: {sim_time:.3f}s, Path Length: {path_len}, Obstacles Precent: {selected_percentage}")
             randomize_params()
 
 
