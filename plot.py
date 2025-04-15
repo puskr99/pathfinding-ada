@@ -69,24 +69,43 @@ def plot_summary_from_csv(csv_path):
         valid_algorithms = avg_times.index.tolist()
 
         # Subplot setup
-        plt.figure(figsize=(15, 5))
+        plt.figure(figsize=(10, 10))
 
-        # Subplot 1: Avg Computation Time
-        plt.subplot(1, 3, 1)
-        plt.bar(valid_algorithms, avg_times, yerr=std_times, color='skyblue', capsize=5)
-        plt.title(f"Avg Computation Time (Obstacles {op}%)")
-        plt.ylabel("Time (s)")
-        plt.xticks(rotation=45)
-
-        # Subplot 2: Avg Path Length
-        plt.subplot(1, 3, 2)
+        # Subplot 1: Avg Path Length
+        plt.subplot(2, 2, 1)
         plt.bar(valid_algorithms, avg_lengths, yerr=std_lengths, color='lightgreen', capsize=5)
         plt.title(f"Avg Path Length (Obstacles {op}%)")
         plt.ylabel("Steps")
-        plt.xticks(rotation=45)
+        # plt.xticks(rotation=45)
 
-        # Subplot 3: Smoothed Time vs Nodes (log scale)
-        plt.subplot(1, 3, 3)
+        # Subplot 2: Smoothed Space vs Nodes (log scale)
+        plt.subplot(2, 2, 2)
+        for algo in valid_algorithms:
+            sub_df = op_df[op_df["algorithm"] == algo]
+            sub_df = sub_df.sort_values("nodes")
+            x = sub_df["nodes"].values
+            y = sub_df["path_length"].values
+
+            # Smooth data
+            nodes_smooth, path_length_smooth = smooth_data(x, y)
+            plt.plot(nodes_smooth, path_length_smooth, label=algo, linewidth=2)
+
+        plt.title(f"Space vs. Nodes (Obstacles {op * 100}%)")
+        plt.xlabel("Number of Nodes (rows * cols)")
+        plt.ylabel("Length of path taken")
+        plt.yscale('log')
+        plt.grid(True, which="both", ls="--")
+        plt.legend()
+
+        # Subplot 3: Avg Computation Time
+        plt.subplot(2, 2, 3)
+        plt.bar(valid_algorithms, avg_times, yerr=std_times, color='skyblue', capsize=5)
+        plt.title(f"Avg Computation Time (Obstacles {op}%)")
+        plt.ylabel("Time (s)")
+        # plt.xticks(rotation=45)
+
+        # Subplot 4: Smoothed Time vs Nodes (log scale)
+        plt.subplot(2, 2, 4)
         for algo in valid_algorithms:
             sub_df = op_df[op_df["algorithm"] == algo]
             sub_df = sub_df.sort_values("nodes")
@@ -103,6 +122,7 @@ def plot_summary_from_csv(csv_path):
         plt.yscale('log')
         plt.grid(True, which="both", ls="--")
         plt.legend()
+
 
         # Adjust layout for clarity
         plt.tight_layout()
@@ -141,4 +161,4 @@ def smooth_data(x, y, frac=0.2):
     return smoothed_x, smoothed_y
 
 # Example usage
-# plot_summary_from_csv("simulation_summary.csv")
+plot_summary_from_csv("simulation_summary.csv")
