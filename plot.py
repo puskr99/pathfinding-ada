@@ -74,7 +74,7 @@ def plot_summary_from_csv(csv_path):
         # Subplot 1: Avg Path Length
         plt.subplot(2, 2, 1)
         plt.bar(valid_algorithms, avg_lengths, yerr=std_lengths, color='lightgreen', capsize=5)
-        plt.title(f"Avg Path Length (Obstacles {op}%)")
+        plt.title(f"Avg Path Length (Obstacles {op*100}%)")
         plt.ylabel("Steps")
         # plt.xticks(rotation=45)
 
@@ -100,7 +100,7 @@ def plot_summary_from_csv(csv_path):
         # Subplot 3: Avg Computation Time
         plt.subplot(2, 2, 3)
         plt.bar(valid_algorithms, avg_times, yerr=std_times, color='skyblue', capsize=5)
-        plt.title(f"Avg Computation Time (Obstacles {op}%)")
+        plt.title(f"Avg Computation Time (Obstacles {op * 100}%)")
         plt.ylabel("Time (s)")
         # plt.xticks(rotation=45)
 
