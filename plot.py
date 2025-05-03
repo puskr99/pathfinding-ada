@@ -91,7 +91,7 @@ def plot_summary_from_csv(csv_path):
             plt.plot(nodes_smooth, path_length_smooth, label=algo, linewidth=2)
 
         plt.title(f"Space vs. Nodes (Obstacles {op * 100}%)")
-        plt.xlabel("Number of Nodes (rows * cols)")
+        # plt.xlabel("Number of Nodes (rows * cols)")
         plt.ylabel("Length of path taken")
         plt.yscale('log')
         plt.grid(True, which="both", ls="--")
@@ -125,7 +125,7 @@ def plot_summary_from_csv(csv_path):
 
 
         # Adjust layout for clarity
-        plt.tight_layout()
+        # plt.tight_layout()
         # Show plot for this obstacle percentage
         plt.show()
 
