@@ -8,7 +8,7 @@ from collections import deque
 
 # Assuming these are defined in attributes.py
 from attributes import *
-from plot import plot_simulation_results
+from plot import save_simulation_data
 
 # Initialize Pygame
 pygame.init()
@@ -185,7 +185,7 @@ def go_to_target(current_pos, target_pos, obstacle_list, algorithm):
         tracemalloc.stop()
         
         # Store memory usage for the current iteration
-        if path:  # Only store if a path was found
+        if path and memory_mb > 0:  # Only store if a path was found
             simulation_data[algorithm]["memory_mb"].append(memory_mb)
         
         if not path:
@@ -395,7 +395,7 @@ while running:
             randomize_params()
 
         if simulation_count >= MAX_SIMULATION_COUNT:
-            plot_simulation_results(simulation_data=simulation_data)
+            save_simulation_data(simulation_data=simulation_data)
             IS_SIMULATION = False
             pygame.quit()
             sys.exit()

@@ -5,183 +5,243 @@ import os
 import pandas as pd
 from statsmodels.nonparametric.smoothers_lowess import lowess
 
-def plot_simulation_results(simulation_data, output_csv_path="simulation_summary.csv"):
-    # Filter algorithms with data to avoid ZeroDivisionError
-    valid_algorithms = [algo for algo in simulation_data.keys()
-                        if simulation_data[algo]["times"] and simulation_data[algo]["path_lengths"]]
+def save_simulation_data(simulation_data, output_csv_path="simulation_summary.csv"):
+    """
+    Saves simulation data to a CSV file.
+
+    Parameters:
+        simulation_data (dict): Nested dictionary containing simulation results.
+        output_csv_path (str): Path to the CSV file.
+    """
+    valid_algorithms = [
+        algo for algo in simulation_data.keys()
+        if simulation_data[algo]["times"] and simulation_data[algo]["path_lengths"]
+    ]
 
     if not valid_algorithms:
-        print("No simulation data to plot.")
+        print("No valid simulation data to save.")
         return
 
-    # Check if CSV file exists
     csv_exists = os.path.exists(output_csv_path)
 
-    # Open CSV file and write (or append) data
+    # Write or append simulation data
     with open(output_csv_path, 'a', newline='') as csvfile:
         writer = csv.writer(csvfile)
-
-        # Write header if file does not exist
         if not csv_exists:
             writer.writerow(["algorithm", "time", "path_length", "nodes", "obstacles_percent", "memory_mb"])
 
-        # Write data rows
         for algo in valid_algorithms:
-            times = simulation_data[algo]["times"]
-            lengths = simulation_data[algo]["path_lengths"]
-            nodes = simulation_data[algo]["nodes"]
-            obstacles_percent = simulation_data[algo]["obstacles_percent"]
-            memory_mb = simulation_data[algo]["memory_mb"] if "memory_mb" in simulation_data[algo] else [0] * len(times)
-
-            for t, l, n, op, m in zip(times, lengths, nodes, obstacles_percent, memory_mb):
+            algo_data = simulation_data[algo]
+            memory_mb = algo_data.get("memory_mb", [0] * len(algo_data["times"]))
+            for t, l, n, op, m in zip(
+                algo_data["times"], algo_data["path_lengths"],
+                algo_data["nodes"], algo_data["obstacles_percent"], memory_mb
+            ):
                 writer.writerow([algo, t, l, n, op, m])
 
     print(f"Simulation data saved to {os.path.abspath(output_csv_path)}")
 
-def plot_summary_from_csv(csv_path):
+def load_and_prepare_csv(csv_path):
+    """
+    Loads and cleans simulation data from a CSV file.
+
+    Parameters:
+        csv_path (str): Path to the CSV file.
+
+    Returns:
+        pd.DataFrame: Cleaned and prepared data.
+    """
     if not os.path.exists(csv_path):
-        print(f"No data found at {csv_path}")
-        return
+        print(f"CSV file not found at {csv_path}")
+        return pd.DataFrame()
 
-    df = pd.read_csv(csv_path)
-
+    df = pd.read_csv(csv_path).drop_duplicates()
     if df.empty:
         print("CSV file is empty.")
-        return
+        return df
 
-    # Remove exact duplicate rows
-    df = df.drop_duplicates()
-
-    # Add memory_mb column with zeros if missing
     if "memory_mb" not in df.columns:
         df["memory_mb"] = 0
 
-    # Remove rows with NaN or infinite values
-    df = df.dropna()
-    df = df[np.isfinite(df["nodes"]) & np.isfinite(df["path_length"]) & 
-            np.isfinite(df["time"]) & np.isfinite(df["memory_mb"])]
+    # Remove rows with invalid data
+    numeric_columns = ["time", "path_length", "nodes", "obstacles_percent", "memory_mb"]
+    df = df.dropna(subset=numeric_columns)
+    df = df[np.all(np.isfinite(df[numeric_columns]), axis=1)]
+    return df
 
-    # Unique obstacle percentages
-    obstacle_percentages = df['obstacles_percent'].unique()
-    obstacle_percentages.sort()
-    # Loop through each obstacle percentage and plot separately
-    for op in obstacle_percentages:
-        # Filter data for the current obstacle percentage
-        op_df = df[df['obstacles_percent'] == op]
-
-        # Group by algorithm and calculate stats
-        grouped = op_df.groupby("algorithm")
-        avg_times = grouped["time"].mean()
-        std_times = grouped["time"].std()
-        avg_lengths = grouped["path_length"].mean()
-        std_lengths = grouped["path_length"].std()
-        avg_memory = grouped["memory_mb"].mean()
-        std_memory = grouped["memory_mb"].std()
-
-        valid_algorithms = avg_times.index.tolist()
-
-        # Subplot setup
-        plt.figure(figsize=(15, 10))
-
-        # First Row: Average Plots
-        # Subplot 1: Avg Path Length
-        plt.subplot(2, 3, 1)
-        plt.bar(valid_algorithms, avg_lengths, yerr=std_lengths, color='lightgreen', capsize=5)
-        plt.title(f"Avg Path Length (Obstacles {op*100:.0f}%)")
-        plt.ylabel("Steps")
-
-        # Subplot 2: Avg Computation Time
-        plt.subplot(2, 3, 2)
-        plt.bar(valid_algorithms, avg_times, yerr=std_times, color='skyblue', capsize=5)
-        plt.title(f"Avg Computation Time (Obstacles {op * 100:.0f}%)")
-        plt.ylabel("Time (s)")
-
-        # Subplot 3: Avg Memory Usage
-        plt.subplot(2, 3, 3)
-        plt.bar(valid_algorithms, avg_memory, yerr=std_memory, color='lightcoral', capsize=5)
-        plt.title(f"Avg Memory Usage (Obstacles {op * 100:.0f}%)")
-        plt.ylabel("Memory (MB)")
-
-        # Second Row: Vs. Nodes Plots
-        # Subplot 4: Computation Time vs Nodes (log scale)
-        plt.subplot(2, 3, 4)
-        for algo in valid_algorithms:
-            sub_df = op_df[op_df["algorithm"] == algo]
-            sub_df = sub_df.sort_values("nodes")
-            x = sub_df["nodes"].values
-            y = sub_df["time"].values
-
-            # Smooth data
-            nodes_smooth, times_smooth = smooth_data(x, y)
-            plt.plot(nodes_smooth, times_smooth, label=algo, linewidth=2)
-
-        plt.title(f"Computation Time vs. Nodes (Obstacles {op * 100:.0f}%)")
-        plt.xlabel("Number of Nodes (rows * cols)")
-        plt.ylabel("Time (s)")
-        plt.yscale('log')
-        plt.grid(True, which="both", ls="--")
-        plt.legend()
-
-        # Subplot 5: Memory Usage vs Nodes (log scale)
-        plt.subplot(2, 3, 5)
-        for algo in valid_algorithms:
-            sub_df = op_df[op_df["algorithm"] == algo]
-            sub_df = sub_df.sort_values("nodes")
-            x = sub_df["nodes"].values
-            y = sub_df["memory_mb"].values
-
-            # Smooth data
-            nodes_smooth, memory_smooth = smooth_data(x, y)
-            plt.plot(nodes_smooth, memory_smooth, label=algo, linewidth=2)
-
-        plt.title(f"Memory Usage vs. Nodes (Obstacles {op * 100:.0f}%)")
-        plt.xlabel("Number of Nodes (rows * cols)")
-        plt.ylabel("Memory (MB)")
-        plt.yscale('log')
-        plt.grid(True, which="both", ls="--")
-        plt.legend()
-
-        # Adjust layout for clarity
-        plt.tight_layout()
-        # Save plot as an image
-        # plt.savefig(f'plot_obstacles_{op*100:.0f}.png')
-        # plt.close()
-        plt.show()
-
-def smooth_data(x, y, frac=0.2):
-    # return x, y
+def plot_data(df, obstacle_percent):
     """
-    Smooths the data using LOWESS (locally weighted regression).
-    
+    Plots simulation data for a given obstacle percentage.
+
     Parameters:
-        x: 1D array-like, independent variable (e.g., nodes)
-        y: 1D array-like, dependent variable (e.g., time)
-        frac: float, between 0 and 1 — amount of smoothing (higher = smoother)
-    
-    Returns:
-        Tuple of (smoothed_x, smoothed_y)
+        df (pd.DataFrame): Filtered simulation data.
+        obstacle_percent (float): Obstacle percentage to plot.
     """
-    x = np.array(x)
-    y = np.array(y)
+    grouped = df.groupby("algorithm")
+    algorithms = grouped.groups.keys()
 
-    # Check for invalid or insufficient data
-    if len(x) < 3 or len(np.unique(x)) < 3 or np.any(~np.isfinite(x)) or np.any(~np.isfinite(y)):
-        return x, y  # Return raw data if smoothing is not possible
+    avg_metrics = grouped[["time", "path_length", "memory_mb"]].mean()
+    std_metrics = grouped[["time", "path_length", "memory_mb"]].std()
 
-    # Sort by x to ensure proper line
+    plt.figure(figsize=(15, 10))
+
+    # Average Metrics
+    for idx, (metric, title, ylabel, color) in enumerate(
+        [("path_length", "Avg Path Length", "Steps", "lightgreen"),
+         ("time", "Avg Computation Time", "Time (s)", "skyblue"),
+         ("memory_mb", "Avg Memory Usage", "Memory (MB)", "lightcoral")]
+    ):
+        plt.subplot(2, 3, idx + 1)
+        plt.bar(algorithms, avg_metrics[metric], color=color, capsize=5)
+        plt.title(f"{title} (Obstacles {obstacle_percent * 100:.0f}%)")
+        plt.ylabel(ylabel)
+        plt.xticks(rotation=45, ha="right")
+
+    # Nodes vs Metrics (Log Scale)
+    for idx, (metric, ylabel, title) in enumerate(
+        [("time", "Time (s)", "Computation Time vs. Nodes"),
+         ("memory_mb", "Memory (MB)", "Memory Usage vs. Nodes")]
+    ):
+        plt.subplot(2, 3, idx + 4)
+        for algo in algorithms:
+            algo_df = df[df["algorithm"] == algo].sort_values("nodes")
+            nodes, metric_values = algo_df["nodes"], algo_df[metric]
+            smoothed_nodes, smoothed_values = smooth_data(nodes, metric_values)
+            plt.plot(smoothed_nodes, smoothed_values, label=algo, linewidth=2)
+        plt.title(f"{title} (Obstacles {obstacle_percent * 100:.0f}%)")
+        plt.xlabel("Number of Nodes (rows * cols)")
+        plt.ylabel(ylabel)
+        plt.yscale('log')
+        plt.grid(which="both", linestyle="--", linewidth=0.5)
+        plt.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+def plot_summary_from_csv(csv_path):
+    """
+    Generates plots from simulation data stored in a CSV file.
+
+    Parameters:
+        csv_path (str): Path to the CSV file.
+    """
+    df = load_and_prepare_csv(csv_path)
+    if df.empty:
+        return
+
+    obstacle_percentages = sorted(df["obstacles_percent"].unique())
+    for op in obstacle_percentages:
+        plot_data(df[df["obstacles_percent"] == op], op)
+
+import numpy as np
+from scipy.interpolate import UnivariateSpline
+from statsmodels.nonparametric.smoothers_lowess import lowess
+from scipy.signal import savgol_filter
+
+def smooth_data(x, y, method="lowess", frac=0.3, spline_smooth_factor=None, window_size=5, clamp_range=None, remove_outliers=True):
+    """
+    Smooths data using LOWESS, cubic spline, or Savitzky-Golay filter with robust preprocessing.
+
+    Parameters:
+        x (array-like): Independent variable (e.g., nodes).
+        y (array-like): Dependent variable (e.g., path_length, time, memory_mb).
+        method (str): Smoothing method ('lowess', 'spline', 'savgol').
+        frac (float): Smoothing factor for LOWESS (0 < frac <= 1, default=0.3).
+        spline_smooth_factor (float, optional): Smoothness for spline (lower = smoother, default auto).
+        window_size (int): Window size for Savitzky-Golay filter (must be odd, default=5).
+        clamp_range (tuple, optional): (min, max) values to clamp y.
+        remove_outliers (bool): Remove outliers using IQR method before smoothing (default=True).
+
+    Returns:
+        Tuple of (smoothed_x, smoothed_y) arrays.
+    """
+    # Convert inputs to numpy arrays
+    x, y = np.array(x, dtype=float), np.array(y, dtype=float)
+
+    # Handle edge cases
+    if len(x) < 3 or len(np.unique(x)) < 3:
+        print(f"Insufficient data for smoothing: len(x)={len(x)}, unique_x={len(np.unique(x))}")
+        return x, y
+
+    # Remove NaN and infinite values
+    valid_mask = np.isfinite(x) & np.isfinite(y)
+    if not np.any(valid_mask):
+        print("All data points are invalid (NaN or infinite).")
+        return x, y
+    x, y = x[valid_mask], y[valid_mask]
+
+    # Remove outliers using IQR method
+    if remove_outliers:
+        q1, q3 = np.percentile(y, [25, 75])
+        iqr = q3 - q1
+        outlier_mask = (y >= q1 - 1.5 * iqr) & (y <= q3 + 1.5 * iqr)
+        if not np.any(outlier_mask):
+            print("No valid data after outlier removal.")
+            return x, y
+        x, y = x[outlier_mask], y[outlier_mask]
+
+    # Sort data by x
     sorted_indices = np.argsort(x)
-    x_sorted = x[sorted_indices]
-    y_sorted = y[sorted_indices]
+    x_sorted, y_sorted = x[sorted_indices], y[sorted_indices]
 
-    # Apply LOWESS with try-except to handle warnings
-    try:
-        smoothed = lowess(y_sorted, x_sorted, frac=frac, return_sorted=True)
-        smoothed_x = smoothed[:, 0]
-        smoothed_y = smoothed[:, 1]
-        return smoothed_x, smoothed_y
-    except Exception as e:
-        print(f"LOWESS smoothing failed: {e}")
-        return x, y  # Fallback to raw data
+    # Remove duplicate x values (keep first occurrence)
+    unique_mask = np.concatenate(([True], np.diff(x_sorted) != 0))
+    if not np.any(unique_mask):
+        print("No unique x values after preprocessing.")
+        return x_sorted, y_sorted
+    x_sorted, y_sorted = x_sorted[unique_mask], y_sorted[unique_mask]
+
+    smoothed_y = None
+
+    if method == "lowess":
+        # LOWESS smoothing with optimized frac
+        try:
+            frac = min(max(frac, 0.1), 1.0)  # Ensure frac is valid
+            smoothed = lowess(y_sorted, x_sorted, frac=frac, return_sorted=True)
+            smoothed_y = smoothed[:, 1]
+        except Exception as e:
+            print(f"LOWESS smoothing failed: {e}. Falling back to raw data.")
+            smoothed_y = y_sorted
+
+    elif method == "spline":
+        # Cubic spline with automatic smoothness
+        try:
+            if spline_smooth_factor is None:
+                # Auto-calculate smoothness based on data size
+                spline_smooth_factor = len(x_sorted) * np.var(y_sorted)
+            spline = UnivariateSpline(x_sorted, y_sorted, s=spline_smooth_factor, k=3)
+            smoothed_y = spline(x_sorted)
+        except Exception as e:
+            print(f"Spline smoothing failed: {e}. Falling back to raw data.")
+            smoothed_y = y_sorted
+
+    elif method == "savgol":
+        # Savitzky-Golay filter for smooth, robust smoothing
+        try:
+            window_size = min(max(window_size, 3), len(x_sorted))  # Ensure valid window
+            if window_size % 2 == 0:
+                window_size += 1  # Must be odd
+            smoothed_y = savgol_filter(y_sorted, window_size, polyorder=2)
+        except Exception as e:
+            print(f"Savitzky-Golay smoothing failed: {e}. Falling back to raw data.")
+            smoothed_y = y_sorted
+
+    else:
+        print(f"Invalid smoothing method: {method}. Using raw data.")
+        smoothed_y = y_sorted
+
+    # Apply clamping if specified
+    if clamp_range:
+        smoothed_y = np.clip(smoothed_y, clamp_range[0], clamp_range[1])
+
+    # Ensure output is finite
+    if np.any(~np.isfinite(smoothed_y)):
+        print("Smoothing produced invalid values. Using raw data.")
+        return x_sorted, y_sorted
+
+    return x_sorted, smoothed_y
+
+
 
 if __name__ == "__main__":
     plot_summary_from_csv("simulation_summary.csv")
