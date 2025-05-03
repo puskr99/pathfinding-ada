@@ -2,12 +2,11 @@ import pygame
 import sys
 import random
 import time
-import matplotlib.pyplot as plt
+import tracemalloc
 import heapq
 from collections import deque
 
-# from ball import go_to_target
-# from obstacles import get_obstacles
+# Assuming these are defined in attributes.py
 from attributes import *
 from plot import plot_simulation_results
 
@@ -26,7 +25,6 @@ trail = []
 ASTAR_BUTTON_RECT = pygame.Rect(10, 10, BUTTON_WIDTH, BUTTON_HEIGHT)
 BFS_BUTTON_RECT = pygame.Rect(120, 10, BUTTON_WIDTH, BUTTON_HEIGHT)
 DFS_BUTTON_RECT = pygame.Rect(240, 10, BUTTON_WIDTH, BUTTON_HEIGHT)
-# RANDOM_DFS_BUTTON_RECT = pygame.Rect(360, 10, BUTTON_WIDTH, BUTTON_HEIGHT)
 BELL_BUTTON_RECT = pygame.Rect(360, 10, BUTTON_WIDTH, BUTTON_HEIGHT)
 
 # Font for button texts
@@ -35,11 +33,11 @@ FONT = pygame.font.Font(None, 36)
 # Simulation variables
 simulation_count = 0
 simulation_data = {
-    "a_star": {"times": [], "path_lengths": [], "nodes": [], "obstacles_percent": []},
-    "bfs": {"times": [], "path_lengths": [], "nodes": [], "obstacles_percent": []},
-    "dfs": {"times": [], "path_lengths": [], "nodes": [], "obstacles_percent": []},
-    "r_dfs": {"times": [], "path_lengths": [], "nodes": [], "obstacles_percent": []},
-    "bell_ford": {"times": [], "path_lengths": [], "nodes": [], "obstacles_percent": []}
+    "a_star": {"times": [], "path_lengths": [], "nodes": [], "obstacles_percent": [], "memory_mb": []},
+    "bfs": {"times": [], "path_lengths": [], "nodes": [], "obstacles_percent": [], "memory_mb": []},
+    "dfs": {"times": [], "path_lengths": [], "nodes": [], "obstacles_percent": [], "memory_mb": []},
+    "r_dfs": {"times": [], "path_lengths": [], "nodes": [], "obstacles_percent": [], "memory_mb": []},
+    "bell_ford": {"times": [], "path_lengths": [], "nodes": [], "obstacles_percent": [], "memory_mb": []}
 }
 
 ALGORITHMS = [ALGORITHM_ASTAR, ALGORITHM_BFS, ALGORITHM_BRUTE, ALGORITHM_BELLMAN_FORD]
@@ -54,7 +52,7 @@ current_algorithm = ALGORITHM_ASTAR  # Default algorithm
 path = []  # Ensure path is global or passed correctly
 
 obstacles = []
-def get_obstacles(ball_x = 0, ball_y = 0):
+def get_obstacles(ball_x=0, ball_y=0):
     obstacles.clear()
     while len(obstacles) < NUM_OBSTACLES:
         obstacle_col = random.randint(0, COLS - 1)
@@ -68,7 +66,6 @@ def get_obstacles(ball_x = 0, ball_y = 0):
     return obstacles
 
 obstacles = get_obstacles(ball_x, ball_y)
-
 
 # Function to draw obstacles
 def draw_obstacles(obstacle_list):
@@ -114,11 +111,6 @@ def draw_buttons():
     dfs_text = FONT.render("DFS", True, (0, 0, 0))
     screen.blit(dfs_text, (DFS_BUTTON_RECT.x + 20, DFS_BUTTON_RECT.y + 5))
 
-    # r_dfs_color = (0, 255, 0) if current_algorithm == ALGORITHM_RANDOM_BRUTE else (150, 150, 150)
-    # pygame.draw.rect(screen, r_dfs_color, RANDOM_DFS_BUTTON_RECT)
-    # r_dfs_text = FONT.render("R-DFS", True, (0, 0, 0))
-    # screen.blit(r_dfs_text, (RANDOM_DFS_BUTTON_RECT.x + 20, RANDOM_DFS_BUTTON_RECT.y + 5))
-
     b_ford_color = (0, 255, 0) if current_algorithm == ALGORITHM_BELLMAN_FORD else (150, 150, 150)
     pygame.draw.rect(screen, b_ford_color, BELL_BUTTON_RECT)
     b_ford_text = FONT.render("BELL", True, (0, 0, 0))
@@ -157,10 +149,8 @@ def randomize_params():
 
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
-
 path = []
-total_obstacles = 0  # Initialize globally
-
+total_obstacles = 0
 
 def go_to_target(current_pos, target_pos, obstacle_list, algorithm):
     global path, total_obstacles
@@ -173,9 +163,11 @@ def go_to_target(current_pos, target_pos, obstacle_list, algorithm):
     
     # Recalculate if no path or next step is blocked
     if not path or (path and path[0] in obstacle_list):
-        # Update total_obstacles before recalculation
         if len(obstacle_list) > total_obstacles:
             total_obstacles = len(obstacle_list)
+        
+        # Start memory tracking
+        tracemalloc.start()
         
         match algorithm:
             case "a_star":
@@ -184,17 +176,23 @@ def go_to_target(current_pos, target_pos, obstacle_list, algorithm):
                 path = bfs(current_pos, target_pos, obstacle_list)
             case "dfs":
                 path = brute_force(current_pos, target_pos, obstacle_list)
-            # case "r_dfs":
-            #     path = random_brute_force(current_pos, target_pos, obstacle_list)
             case "bell_ford":
                 path = bellman_ford(current_pos, target_pos, obstacle_list)
+        
+        # Get peak memory usage
+        current_memory, peak_memory = tracemalloc.get_traced_memory()
+        memory_mb = peak_memory / (1024 * 1024)  # Convert to MB
+        tracemalloc.stop()
+        
+        # Store memory usage for the current iteration
+        if path:  # Only store if a path was found
+            simulation_data[algorithm]["memory_mb"].append(memory_mb)
         
         if not path:
             return cx, cy, False  # No path, stay put
     
     if path:
         next_pos = path[0]
-        # Move towards next position
         if cx < next_pos[0]:
             cx += ball_speed
         elif cx > next_pos[0]:
@@ -204,7 +202,6 @@ def go_to_target(current_pos, target_pos, obstacle_list, algorithm):
         elif cy > next_pos[1]:
             cy -= ball_speed
         
-        # Snap to position if close enough
         if abs(cx - next_pos[0]) < ball_speed:
             cx = next_pos[0]
         if abs(cy - next_pos[1]) < ball_speed:
@@ -212,15 +209,12 @@ def go_to_target(current_pos, target_pos, obstacle_list, algorithm):
     
     return cx, cy, True
 
-
-
-
-## A-Star Algorithm
+# A-Star Algorithm
 def a_star(start, goal, obstacle_list):
-    start = (start[0] // CELL_WIDTH, start[1] // CELL_HEIGHT)  # Convert to grid coordinates
+    start = (start[0] // CELL_WIDTH, start[1] // CELL_HEIGHT)
     goal = (goal[0] // CELL_WIDTH, goal[1] // CELL_HEIGHT)
     
-    open_set = [(0, start)]  # Priority queue with (f_score, position)
+    open_set = [(0, start)]
     came_from = {}
     g_score = {start: 0}
     f_score = {start: heuristic(start, goal)}
@@ -231,15 +225,14 @@ def a_star(start, goal, obstacle_list):
         current = heapq.heappop(open_set)[1]
         
         if current == goal:
-            # Reconstruct path
             path = []
             while current in came_from:
                 path.append((current[0] * CELL_WIDTH, current[1] * CELL_HEIGHT))
                 current = came_from[current]
             path.append((start[0] * CELL_WIDTH, start[1] * CELL_HEIGHT))
-            return path[::-1]  # Return reversed path
+            return path[::-1]
         
-        for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:  # Four directions
+        for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
             neighbor = (current[0] + dx, current[1] + dy)
             
             if (0 <= neighbor[0] < COLS and 0 <= neighbor[1] < ROWS and 
@@ -252,21 +245,19 @@ def a_star(start, goal, obstacle_list):
                     f_score[neighbor] = tentative_g_score + heuristic(neighbor, goal)
                     heapq.heappush(open_set, (f_score[neighbor], neighbor))
     
-    return []  # Return empty path if no path found
+    return []
 
 def heuristic(a, b):
-    return abs(a[0] - b[0]) + abs(a[1] - b[1])  # Manhattan distance
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
-
-
-## BFS
+# BFS
 def bfs(start, goal, obstacle_list):
-    start = (start[0] // CELL_WIDTH, start[1] // CELL_HEIGHT)  # Convert to grid coordinates
+    start = (start[0] // CELL_WIDTH, start[1] // CELL_HEIGHT)
     goal = (goal[0] // CELL_WIDTH, goal[1] // CELL_HEIGHT)
     
-    queue = deque([start])  # Queue for BFS
-    came_from = {start: None}  # Track where we came from
-    visited = {start}  # Track visited nodes
+    queue = deque([start])
+    came_from = {start: None}
+    visited = {start}
     
     obstacle_grid = set((x // CELL_WIDTH, y // CELL_HEIGHT) for x, y in obstacle_list)
     
@@ -274,14 +265,12 @@ def bfs(start, goal, obstacle_list):
         current = queue.popleft()
         
         if current == goal:
-            # Reconstruct path
             path = []
             while current is not None:
                 path.append((current[0] * CELL_WIDTH, current[1] * CELL_HEIGHT))
                 current = came_from[current]
-            return path[::-1]  # Return reversed path
+            return path[::-1]
         
-        # Explore four directions: right, down, left, up
         for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
             neighbor = (current[0] + dx, current[1] + dy)
             
@@ -293,7 +282,7 @@ def bfs(start, goal, obstacle_list):
                 visited.add(neighbor)
                 came_from[neighbor] = current
     
-    return []  # Return empty path if no path found
+    return []
 
 # DFS (Brute Force)
 def brute_force(start, goal, obstacle_list):
@@ -321,50 +310,12 @@ def brute_force(start, goal, obstacle_list):
 
     return []
 
-
-# Random DFS
-# def random_brute_force(start, goal, obstacle_list):
-#     start = (start[0] // CELL_WIDTH, start[1] // CELL_HEIGHT)
-#     goal = (goal[0] // CELL_WIDTH, goal[1] // CELL_HEIGHT)
-#     obstacle_grid = set((x // CELL_WIDTH, y // CELL_HEIGHT) for x, y in obstacle_list)
-#     visited = set()
-#     directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # down, right, up, left
-    
-#     def dfs_random(current, path_so_far, max_attempts=10000):
-#         if current == goal:
-#             return path_so_far
-        
-#         if len(path_so_far) > max_attempts:  # Limit to prevent infinite recursion
-#             return None
-        
-#         visited.add(current)
-#         # Randomly shuffle directions to explore
-#         random.shuffle(directions)
-        
-#         for dx, dy in directions:
-#             next_pos = (current[0] + dx, current[1] + dy)
-#             if (0 <= next_pos[0] < COLS and 
-#                 0 <= next_pos[1] < ROWS and 
-#                 next_pos not in obstacle_grid and 
-#                 next_pos not in visited):
-#                 result = dfs_random(next_pos, path_so_far + [next_pos])
-#                 if result:
-#                     return result
-#         return None
-    
-#     path = dfs_random(start, [start])
-#     if path:
-#         return [(x * CELL_WIDTH, y * CELL_HEIGHT) for x, y in path]
-#     return []
-
-
 # Bellman Ford Algorithm
 def bellman_ford(start, goal, obstacle_list):
     start = (start[0] // CELL_WIDTH, start[1] // CELL_HEIGHT)
     goal = (goal[0] // CELL_WIDTH, goal[1] // CELL_HEIGHT)
     obstacle_grid = set((x // CELL_WIDTH, y // CELL_HEIGHT) for x, y in obstacle_list)
     
-    # Initialize distances and predecessors
     distances = {}
     predecessors = {}
     for y in range(ROWS):
@@ -374,7 +325,6 @@ def bellman_ford(start, goal, obstacle_list):
             predecessors[node] = None
     distances[start] = 0
     
-    # Edges: all possible moves between grid cells
     edges = []
     for y in range(ROWS):
         for x in range(COLS):
@@ -382,23 +332,20 @@ def bellman_ford(start, goal, obstacle_list):
                 for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
                     nx, ny = x + dx, y + dy
                     if 0 <= nx < COLS and 0 <= ny < ROWS and (nx, ny) not in obstacle_grid:
-                        edges.append(((x, y), (nx, ny), 1))  # Weight of 1 for each move
+                        edges.append(((x, y), (nx, ny), 1))
     
-    # Bellman-Ford algorithm
-    for _ in range(ROWS * COLS - 1):  # Relax edges V-1 times
+    for _ in range(ROWS * COLS - 1):
         for u, v, weight in edges:
             if distances[u] != float('inf') and distances[u] + weight < distances[v]:
                 distances[v] = distances[u] + weight
                 predecessors[v] = u
     
-    # Check for negative cycles (not applicable here, but included for completeness)
     for u, v, weight in edges:
         if distances[u] != float('inf') and distances[u] + weight < distances[v]:
-            return []  # Negative cycle detected (shouldn't happen in this grid)
+            return []
     
-    # Reconstruct path
     if distances[goal] == float('inf'):
-        return []  # No path to goal
+        return []
     
     path = []
     current = goal
@@ -407,19 +354,16 @@ def bellman_ford(start, goal, obstacle_list):
         current = predecessors[current]
     return path[::-1]
 
-
 # Main game loop
 clock = pygame.time.Clock()
-# IS_SIMULATION = False
 
 while running:
     if IS_SIMULATION and simulation_count < MAX_SIMULATION_COUNT:
         algo_index = simulation_count % len(ALGORITHMS)
         current_algorithm = ALGORITHMS[algo_index]
 
-        # Simulation mode
         if not moving:
-            obstacles = get_obstacles(ball_x, ball_y)  # Static base
+            obstacles = get_obstacles(ball_x, ball_y)
             trail.clear()
             lines.clear()
             markers.clear()
@@ -430,8 +374,6 @@ while running:
             path = []
             start_time = time.time()
 
-        
-        # Move ball and add random obstacles
         old_x, old_y = ball_x, ball_y
         ball_x, ball_y, movable = go_to_target((ball_x, ball_y), target_pos, obstacles, current_algorithm)
         if (ball_x, ball_y) != (old_x, old_y):
@@ -448,20 +390,17 @@ while running:
                 simulation_data[current_algorithm]["path_lengths"].append(path_len)
                 simulation_data[current_algorithm]["nodes"].append(ROWS * COLS)
                 simulation_data[current_algorithm]["obstacles_percent"].append(selected_percentage)
-            print(f"Iteration {simulation_count}: {current_algorithm}, Time: {sim_time:.3f}s, Path Length: {path_len}, Obstacles Precent: {selected_percentage}")
+                # Memory is appended in go_to_target
+            print(f"Iteration {simulation_count}: {current_algorithm}, Time: {sim_time:.3f}s, Path Length: {path_len}, Obstacles Percent: {selected_percentage}")
             randomize_params()
 
-
         if simulation_count >= MAX_SIMULATION_COUNT:
-            # save_simulation_data(new_data=simulation_count)
             plot_simulation_results(simulation_data=simulation_data)
-            IS_SIMULATION = False  # Exit simulation mode
+            IS_SIMULATION = False
             pygame.quit()
             sys.exit()
-        
 
     else:
-        # Interactive mode
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -482,9 +421,6 @@ while running:
                     elif DFS_BUTTON_RECT.collidepoint(mouse_pos):
                         current_algorithm = ALGORITHM_BRUTE
                         path = []
-                    # elif RANDOM_DFS_BUTTON_RECT.collidepoint(mouse_pos):
-                    #     current_algorithm = ALGORITHM_RANDOM_BRUTE
-                    #     path = []
                     elif BELL_BUTTON_RECT.collidepoint(mouse_pos):
                         current_algorithm = ALGORITHM_BELLMAN_FORD
                         path = []
@@ -512,7 +448,7 @@ while running:
                 if event.key == pygame.K_e:
                     lines.clear()
                     trail.clear()
-                elif event.key == pygame.K_s:  # Press 'S' to start simulation
+                elif event.key == pygame.K_s:
                     IS_SIMULATION = True
                     simulation_count = 0
 
@@ -528,7 +464,6 @@ while running:
                               (target_pos[0] + CELL_WIDTH // 2, target_pos[1] + CELL_HEIGHT // 2)))
                 moving = False
 
-    # Rendering
     screen.fill((255, 255, 255))
     for row in range(ROWS):
         for col in range(COLS):
@@ -545,7 +480,7 @@ while running:
         draw_dotted_line(screen, trail[i-1], trail[i], TRAIL_COLOR)
     
     pygame.display.flip()
-    clock.tick(60)  # Cap at 60 FPS
+    clock.tick(60)
 
 pygame.quit()
 sys.exit()
