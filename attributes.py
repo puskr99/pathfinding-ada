@@ -18,7 +18,7 @@ ball_y = HEIGHT - CELL_HEIGHT
 
 NUM_OBSTACLES = 20  # Number of obstacles
 
-ball_speed = 1000 # Speed of the ball
+ball_speed = 5 # Speed of the ball
 
 ALGORITHM_ASTAR = "a_star"
 ALGORITHM_BFS = "bfs"

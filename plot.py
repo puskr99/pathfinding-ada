@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import os
+import csv
 
 def smooth_data(x, y, method="lowess", frac=0.3, spline_smooth_factor=None, window_size=5, clamp_range=None, remove_outliers=True):
     """
@@ -245,6 +246,43 @@ def plot_summary_from_csv(csv_path, obstacle_percents=[0.05, 0.1, 0.25, 0.4], ou
     )
 
     print(f"Plots saved to {os.path.abspath(output_dir)}")
+
+def save_simulation_data(simulation_data, output_csv_path="simulation_summary.csv"):
+    """
+    Saves simulation data to a CSV file.
+
+    Parameters:
+        simulation_data (dict): Nested dictionary containing simulation results.
+        output_csv_path (str): Path to the CSV file.
+    """
+    valid_algorithms = [
+        algo for algo in simulation_data.keys()
+        if simulation_data[algo]["times"] and simulation_data[algo]["path_lengths"]
+    ]
+
+    if not valid_algorithms:
+        print("No valid simulation data to save.")
+        return
+
+    csv_exists = os.path.exists(output_csv_path)
+
+    # Write or append simulation data
+    with open(output_csv_path, 'a', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        if not csv_exists:
+            writer.writerow(["algorithm", "time", "path_length", "nodes", "obstacles_percent", "memory_mb"])
+
+        for algo in valid_algorithms:
+            algo_data = simulation_data[algo]
+            memory_mb = algo_data.get("memory_mb", [0] * len(algo_data["times"]))
+            for t, l, n, op, m in zip(
+                algo_data["times"], algo_data["path_lengths"],
+                algo_data["nodes"], algo_data["obstacles_percent"], memory_mb
+            ):
+                writer.writerow([algo, t, l, n, op, m])
+
+    print(f"Simulation data saved to {os.path.abspath(output_csv_path)}")
+
 
 if __name__ == "__main__":
     plot_summary_from_csv("simulation_summary.csv")
